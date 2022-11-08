@@ -6,8 +6,10 @@
 #include <cstdlib>
 #include <time.h>
 
-void serial_baseline() {
-    continue;
+void serial_baseline(int n) {
+    for (int i = 0; i < n; i++) {
+        // x_i = (x_(i-1)*a +1*b) % p
+    }
 }
 
 void serial_matrix() {
