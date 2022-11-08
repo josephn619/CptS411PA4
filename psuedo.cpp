@@ -16,6 +16,21 @@ void serial_matrix() {
     continue;
 }
 
+int summation(int A, int n) {
+    int sum = 0;
+    for (int i = 1; i < n; i++) {
+        sum += pow(A,i);
+    }
+    return sum;
+}
+
+void calc_for_i(int A, int B, int i, std::vector<int>RecvBuff) {
+    RecvBuff[0] = pow(A,i);
+    RecvBuff[1] = 0;
+    RecvBuff[2] = B*summation(A, i);
+    RecvBuff[3] = 1;
+}
+
 void matrix_mult_2x2(std::vector<int> A, std::vector<int> B, std::vector<int>RecvBuff, int P) {
     RecvBuff[0] = ((A.at(0) * B.at(0)) + (A.at(1) * B.at(3))) % P;
     RecvBuff[1] = ((A.at(0) * B.at(1)) + (A.at(1) * B.at(3))) % P;
