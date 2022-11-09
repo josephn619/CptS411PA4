@@ -38,6 +38,17 @@ void matrix_mult_2x2(std::vector<int> A, std::vector<int> B, std::vector<int>Rec
     RecvBuff[3] = ((A.at(2) * B.at(1)) + (A.at(3) * B.at(3))) % P;
 }
 
+int[] serial_baseline(int n, int A, int B, int P, int seed)
+{
+    int randoms[n];
+    randoms[0] = seed;
+    for (int i = 1, i < n, i++)  
+    {
+        randoms[i] = ((A * randoms[i-1]) + B)
+    }
+    return randoms
+}
+
 int main(int argc, char *argv[]) {
     srand((unsigned int)time(nullptr));
 
