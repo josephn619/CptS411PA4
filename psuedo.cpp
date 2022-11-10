@@ -74,7 +74,7 @@ void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[],
 {
     int index = n/p * rank;    
     int matrix_power = 1;
-    int I[4]= {1,0,0,1}, base[4] = {A,0,B,1};
+    int I[4]= {1,0,0,1};
     int world_size;
     int SendM[] = {A,0,B,1};
     int RecvM[] = {0,0,0,0};
@@ -108,9 +108,21 @@ void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[],
     //printMatrix(process_matrix, rank);
 }
 
-void calculateRandoms(int process_matrix[], int rank, int randoms[])
+void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, int P, int n, int p, int A, int B)
 {
-    vector_transformation()
+    
+    int vector[2] = {seed, 1};
+    int base[4] = {A,0,B,1};
+
+    for (int i = 0; i < n/p; i++)
+    {
+        //get vector[0] to have the right value;
+        vector_transformation(vector, process_matrix, P);
+        randoms[i] = vector[0];
+        matrix_mult_2x2(process_matrix, base, P);
+    }
+    
+    
 }
 
 int main(int argc, char *argv[]) 
