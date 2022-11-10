@@ -113,33 +113,37 @@ void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, i
     
     int vector[2] = {seed, 1};
     int base[4] = {A,0,B,1};
-
+    int rns[n/p];
     for (int i = 0; i < n/p; i++)
     {
         //get vector[0] to have the right value;
         vector_transformation(vector, process_matrix, P);
-        randoms[i] = vector[0];
-        std::cout << "Rank: " << rank << "\t Random Value: " << randoms[i] << std::endl;
+        rns[i] = vector[0];
+        std::cout << "Rank: " << rank << "\t Random Value: " << rns[i] << std::endl;
         matrix_mult_2x2(process_matrix, base, P);
     }
     
-    
+    MPI_Gather(rns, (n/p), MPI_INT, randoms, (n/p), MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 int main(int argc, char *argv[]) 
 {
     srand((unsigned int)time(nullptr));
-    int seed = 0;
-    int P = 7919;
+    //int P = 7919;
     int rank, p, world_size;
+
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+    std::chrono::duration<double> duration, total_time;
+    
+    std::vector<std::chrono::duration<double>> average_time;
 
     //assert(p>=1); assert(n%p==0); assert(n>p);
 
-    //int x0 = atoi(argv[1]); //seed
-    //int n = atoi(argv[2]); //size
-    //int A = atoi(argv[3]); //constant
-    //int B = atoi(argv[4]); //constant
-    //int P = atoi(argv[5]); //constant (PRIME)
+    int x0 = atoi(argv[1]); //seed
+    int n = atoi(argv[2]); //size
+    int A = atoi(argv[3]); //constant
+    int B = atoi(argv[4]); //constant
+    int P = atoi(argv[5]); //constant (PRIME)
 
 
     MPI_Init(nullptr, nullptr); MPI_Comm_rank(MPI_COMM_WORLD, &rank); MPI_Comm_size(MPI_COMM_WORLD,&p);
@@ -147,8 +151,25 @@ int main(int argc, char *argv[])
     int randoms[1024];
     int process_matrix[4] = {0,0,0,0};
 
-    parallel_prefix(1024, 1, 1, 7919, 0, process_matrix, rank, p);
-    calculateRandoms(process_matrix, randoms, seed, rank, P, 1024, p, 1, 1);
+    for (int i = 0; i < 100; i++)
+    {
+        start = std::chrono::system_clock::now();
+        parallel_prefix(n, A, B, P, x0, process_matrix, rank, p);
+        calculateRandoms(process_matrix, randoms, x0, rank, P, 1024, p, 1, 1);
+        end = std::chrono::system_clock::now();
+        duration = end - start;
+        if(i == 0)
+        {
+            total_time = duration;
+        }
+        else
+        {
+            total_time += duration;
+        }
+    }
+    average_time.push_back((duration / 100));
+
+    std::cout << average_time[0].count() << std::endl;
 
     MPI_Finalize();
 
