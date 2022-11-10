@@ -97,7 +97,7 @@ void get_randoms(int process_matrix[], int randoms[], int seed, int rank, int P,
         //get vector[0] to have the right value;
         vector_mult(vector, process_matrix, P);
         rns[i] = vector[0];
-        std::cout << "Rank: " << rank << "\t Random Value: " << rns[i] << std::endl;
+        //std::cout << "Rank: " << rank << "\t Random Value: " << rns[i] << std::endl;
         matrix_mult(process_matrix, base, P);
     }
     
@@ -106,36 +106,34 @@ void get_randoms(int process_matrix[], int randoms[], int seed, int rank, int P,
 
 int main(int argc, char *argv[]) 
 {
-    srand((unsigned int)time(nullptr));
-    int seed = 0;
-    int P = 7919;
-    int rank, p, world_size;
-
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    std::chrono::duration<double> duration, total_time;
-        int randoms[1024], process_matrix[4] = {0,0,0,0};
-
-    std::vector<std::chrono::duration<double>> average_time;
-
-    assert(p>=1); assert(n%p==0); assert(n>p);
-
     int x0 = atoi(argv[1]); //seed
     int n = atoi(argv[2]); //size
     int A = atoi(argv[3]); //constant
     int B = atoi(argv[4]); //constant
     int P = atoi(argv[5]); //constant (PRIME)
+    // n = [ 1024, 2048, 4096, 8,192, 16384, 32768, 65536, 131072, 262144, 524288 ]
+    // p = [ 2, 4, 8, 16]
+    srand((unsigned int)time(nullptr));
+    int seed = 0;
+    int rank, p, world_size;
+    int randoms[n], process_matrix[4] = {0,0,0,0};
+
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+    std::chrono::duration<double> duration, total_time;
+    std::vector<std::chrono::duration<double>> average_time;
+
+    //assert(p>=1); assert(n%p==0); assert(n>p);
+
+
 
 
     MPI_Init(nullptr, nullptr); MPI_Comm_rank(MPI_COMM_WORLD, &rank); MPI_Comm_size(MPI_COMM_WORLD,&p);
 
-    int randoms[1024];
-    int process_matrix[4] = {0,0,0,0};
-
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 1000; i++)
     {
         start = std::chrono::system_clock::now();
         parallel_prefix(n, A, B, P, x0, process_matrix, rank, p);
-        calculateRandoms(process_matrix, randoms, x0, rank, P, 1024, p, 1, 1);
+        get_randoms(process_matrix, randoms, x0, rank, P, n, p, A, B);
         end = std::chrono::system_clock::now();
         duration = end - start;
         if(i == 0)
@@ -147,9 +145,31 @@ int main(int argc, char *argv[])
             total_time += duration;
         }
     }
-    average_time.push_back((duration / 100));
+    average_time.push_back((duration / 1000));
 
-    std::cout << average_time[0].count() << std::endl;
+    for (int i = 0; i < 1000; i++)
+    {
+        start = std::chrono::system_clock::now();
+        serial_baseline(n, A, B, P, x0, randoms);
+        end = std::chrono::system_clock::now();
+        duration = end - start;
+        if(i == 0)
+        {
+            total_time = duration;
+        }
+        else
+        {
+            total_time += duration;
+        }
+    }
+    average_time.push_back((duration / 1000));
+
+    if(rank == 0)
+    {
+        std::cout << average_time[0].count() << std::endl;
+        std::cout << average_time[1].count() << std::endl;
+    }
+    
 
     MPI_Finalize();
 
