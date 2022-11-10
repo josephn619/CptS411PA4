@@ -56,8 +56,7 @@ void vector_transformation(int vector[], int matrix[], int P)
 //randoms is n/p where p is number of processors
 void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[], int rank, int p)
 {
-    int index = n/p * rank, target = 0, i = 1;
-    int matrix_power = 1;
+    int index = n/p * rank, target = 0, i = 1, matrix_power = 1;
     int I[4]= {1,0,0,1}, SendM[4] = {A,0,B,1}, RecvM[4] = {0,0,0,0};
     MPI_Status status;
     
@@ -91,8 +90,7 @@ void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[],
 
 void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, int P, int n, int p, int A, int B)
 {
-    int vector[2] = {seed, 1};
-    int base[4] = {A,0,B,1};
+    int vector[2] = {seed, 1}, base[4] = {A,0,B,1};
 
     for (int i = 0; i < n/p; i++)
     {
@@ -107,9 +105,9 @@ void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, i
 int main(int argc, char *argv[]) 
 {
     srand((unsigned int)time(nullptr));
-    int seed = 0;
-    int P = 7919;
+    int seed = 0, P = 7919;
     int rank, p, world_size;
+    int randoms[1024], process_matrix[4] = {0,0,0,0};
 
     //assert(p>=1); assert(n%p==0); assert(n>p);
 
@@ -120,9 +118,6 @@ int main(int argc, char *argv[])
     //int P = atoi(argv[5]); //constant (PRIME)
 
     MPI_Init(nullptr, nullptr); MPI_Comm_rank(MPI_COMM_WORLD, &rank); MPI_Comm_size(MPI_COMM_WORLD,&p);
-
-    int randoms[1024];
-    int process_matrix[4] = {0,0,0,0};
 
     parallel_prefix(1024, 1, 1, 7919, 0, process_matrix, rank, p);
     calculateRandoms(process_matrix, randoms, seed, rank, P, 1024, p, 1, 1);
