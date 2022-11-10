@@ -27,43 +27,27 @@ void serial_baseline(int n, int A, int B, int P, int seed, int randoms[])
 void serial_matrix(int n, int A, int B, int P, int seed, int randoms[]) 
 {
     randoms[0] = seed;
+
     for (int i = 1; i < n; i++)  
     {
         randoms[i] = ((A * randoms[i-1]) + B) % P;
     }
 }
 
-int summation(int A, int n) 
-{
-    int sum = 0;
-    for (int i = 1; i < n; i++) {
-        sum += pow(A,i);
-    }
-    return sum;
-}
-
-void calc_for_i(int A, int B, int i, std::vector<int>RecvBuff) 
-{
-    RecvBuff[0] = pow(A,i);
-    RecvBuff[1] = 0;
-    RecvBuff[2] = B*summation(A, i);
-    RecvBuff[3] = 1;
-}
-
-void matrix_mult_2x2(int A[], int B[], int P) 
+void matrix_mult(int A[], int B[], int P) 
 {
     int RecvBuff[4] = {0,0,0,0};
     RecvBuff[0] = ((A[0] * B[0]) + (A[1] * B[2])) % P;
     RecvBuff[1] = ((A[0] * B[1]) + (A[1] * B[3])) % P;
     RecvBuff[2] = ((A[2] * B[0]) + (A[3] * B[2])) % P;
     RecvBuff[3] = ((A[2] * B[1]) + (A[3] * B[3])) % P;
-    A[0] = RecvBuff[0];
-    A[1] = RecvBuff[1];
-    A[2] = RecvBuff[2];
-    A[3] = RecvBuff[3];
+    for (int i = 0; i < 4; i++)
+    {
+        A[i] = RecvBuff[i];
+    }
 }
 
-void vector_transformation(int vector[], int matrix[], int P)
+void vector_mult(int vector[], int matrix[], int P)
 {
     vector[0] = (vector[0]*matrix[0] + vector[1]*matrix[2]) % P; 
     vector[1] = (vector[0]*matrix[1] + vector[1]*matrix[3]) % P;
@@ -72,23 +56,18 @@ void vector_transformation(int vector[], int matrix[], int P)
 //randoms is n/p where p is number of processors
 void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[], int rank, int p)
 {
-    int index = n/p * rank;    
-    int matrix_power = 1;
-    int I[4]= {1,0,0,1};
-    int world_size;
-    int SendM[] = {A,0,B,1};
-    int RecvM[] = {0,0,0,0};
-    int target = 0;
-    int i = 1;
+    int index = n/p * rank, target = 0, i = 1, matrix_power = 1;
+    int I[4]= {1,0,0,1}, SendM[4] = {A,0,B,1}, RecvM[4] = {0,0,0,0};
     MPI_Status status;
-    for (int j = 2; j <= ((p-1)*n/p); j = j<<1)
+    
+    for (int j = 2; j <= ((p-1)*n/p); j <<= 1)
     {
         target = (rank ^ i);
 
         MPI_Sendrecv(SendM, 4, MPI_INT, target, 0, RecvM, 4, MPI_INT, target, 0, MPI_COMM_WORLD, &status);
-        matrix_mult_2x2(SendM, RecvM, P);
+        matrix_mult(SendM, RecvM, P);
 
-        if ((j) == index)
+        if (j == index)
         {
             process_matrix[0] = SendM[0];
             process_matrix[1] = SendM[1];
@@ -98,29 +77,28 @@ void parallel_prefix(int n, int A, int B, int P, int seed, int process_matrix[],
 
     }
     
-    if (rank==0)
+    if (rank == 0)
     {
         process_matrix[0] = I[0];
         process_matrix[1] = I[1];
         process_matrix[2] = I[2];
         process_matrix[3] = I[3];
     }
+
     //printMatrix(process_matrix, rank);
 }
 
-void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, int P, int n, int p, int A, int B)
+void get_randoms(int process_matrix[], int randoms[], int seed, int rank, int P, int n, int p, int A, int B)
 {
-    
-    int vector[2] = {seed, 1};
-    int base[4] = {A,0,B,1};
-    int rns[n/p];
+    int vector[2] = {seed, 1}, base[4] = {A,0,B,1}, rns[n/p];
+
     for (int i = 0; i < n/p; i++)
     {
         //get vector[0] to have the right value;
-        vector_transformation(vector, process_matrix, P);
+        vector_mult(vector, process_matrix, P);
         rns[i] = vector[0];
         std::cout << "Rank: " << rank << "\t Random Value: " << rns[i] << std::endl;
-        matrix_mult_2x2(process_matrix, base, P);
+        matrix_mult(process_matrix, base, P);
     }
     
     MPI_Gather(rns, (n/p), MPI_INT, randoms, (n/p), MPI_INT, 0, MPI_COMM_WORLD);
@@ -129,15 +107,17 @@ void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, i
 int main(int argc, char *argv[]) 
 {
     srand((unsigned int)time(nullptr));
-    //int P = 7919;
+    int seed = 0;
+    int P = 7919;
     int rank, p, world_size;
 
     std::chrono::time_point<std::chrono::system_clock> start, end;
     std::chrono::duration<double> duration, total_time;
-    
+        int randoms[1024], process_matrix[4] = {0,0,0,0};
+
     std::vector<std::chrono::duration<double>> average_time;
 
-    //assert(p>=1); assert(n%p==0); assert(n>p);
+    assert(p>=1); assert(n%p==0); assert(n>p);
 
     int x0 = atoi(argv[1]); //seed
     int n = atoi(argv[2]); //size
