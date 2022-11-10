@@ -65,8 +65,8 @@ void matrix_mult_2x2(int A[], int B[], int P)
 
 void vector_transformation(int vector[], int matrix[], int P)
 {
-    vector[0] = (vector[0]*matrix[0] + vector[0]*matrix[2]) % P; 
-    vector[1] = (vector[1]*matrix[1] + vector[1]*matrix[3]) % P;
+    vector[0] = (vector[0]*matrix[0] + vector[1]*matrix[2]) % P; 
+    vector[1] = (vector[0]*matrix[1] + vector[1]*matrix[3]) % P;
 }
 
 //randoms is n/p where p is number of processors
@@ -119,6 +119,7 @@ void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, i
         //get vector[0] to have the right value;
         vector_transformation(vector, process_matrix, P);
         randoms[i] = vector[0];
+        std::cout << "Rank: " << rank << "\t Random Value: " << randoms[i] << std::endl;
         matrix_mult_2x2(process_matrix, base, P);
     }
     
@@ -128,6 +129,7 @@ void calculateRandoms(int process_matrix[], int randoms[], int seed, int rank, i
 int main(int argc, char *argv[]) 
 {
     srand((unsigned int)time(nullptr));
+    int seed = 0;
     int P = 7919;
     int rank, p, world_size;
 
@@ -144,7 +146,9 @@ int main(int argc, char *argv[])
 
     int randoms[1024];
     int process_matrix[4] = {0,0,0,0};
+
     parallel_prefix(1024, 1, 1, 7919, 0, process_matrix, rank, p);
+    calculateRandoms(process_matrix, randoms, seed, rank, P, 1024, p, 1, 1);
 
     MPI_Finalize();
 
